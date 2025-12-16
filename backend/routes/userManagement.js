@@ -1,14 +1,22 @@
 const express = require("express");
 const router = express.Router();
 const user = require("../models/user");
+const bcrypt = require("bcrypt");
 
 router.post("/users", async (req, res) => {
   try {
-    const { name, email, age } = req.body;
+    const { name, email, age, password, gender } = req.body;
     const existingUser = await user.findOne({ email });
     if (existingUser)
       return res.status(409).json({ message: "User already exists" });
-    const newUser = new user({ name, email, age });
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = new user({
+      name,
+      email,
+      age,
+      password: hashedPassword,
+      gender,
+    });
     await newUser.save();
     return res.status(200).json({ message: "User saved successfully" });
   } catch (err) {
@@ -40,8 +48,9 @@ router.put("/users/:id", async (req, res) => {
   try {
     const userData = await user.findById(req.params.id);
     if (!userData) return res.status(404).json({ message: "User not found" });
-    const { name, email, age } = req.body;
-    const updatedUser = { name, email, age };
+    const { name, email, age, gender, password } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const updatedUser = { name, email, age, gender, password: hashedPassword };
     res.status(200).json({ message: "Data updated successfully", updatedUser });
   } catch (err) {
     res.status(500).json({ message: "Error from put users route", err });
